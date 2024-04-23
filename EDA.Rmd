@@ -1,0 +1,83 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+
+```{r}
+# read csv
+L18 <- read.csv("/Users/jianingyi/Documents/Documents - Jenny Yi’s MacBook Air/mssp/ma679/final project/core_2018_merged_Laryngectomy.csv")
+M18 <- read.csv("/Users/jianingyi/Documents/Documents - Jenny Yi’s MacBook Air/mssp/ma679/final project/core_2018_merged_Mastoidectomy.csv")
+T18 <- read.csv("/Users/jianingyi/Documents/Documents - Jenny Yi’s MacBook Air/mssp/ma679/final project/core_2018_merged_Tracheostomy.csv")
+
+colnames(L18)
+```
+
+```{r}
+# find unique(NRD_VisitLink>=2)
+library(dplyr)
+filtered_L18 <- L18 %>%
+  group_by(NRD_VisitLink) %>%
+  filter(n() >= 2) %>%
+  ungroup()
+filtered_m18 <- M18 %>%
+  group_by(NRD_VisitLink) %>%
+  filter(n() >= 2) %>%
+  ungroup()
+filtered_t18 <- T18 %>%
+  group_by(NRD_VisitLink) %>%
+  filter(n() >= 2) %>%
+  ungroup()
+
+```
+
+```{r}
+died_counts <- table(T18$DIED)
+died_proportions <- prop.table(died_counts)
+print(died_proportions)
+
+
+```
+
+```{r}
+# 计算每个HOSP_NRD的死亡率
+library(ggplot2)
+death_rates <- T18 %>%
+  group_by(HOSP_NRD.x) %>%
+  summarise(Death_Rate = mean(DIED == 1)) %>%
+  ungroup()
+ggplot(death_rates, aes(x = HOSP_NRD.x, y = Death_Rate)) +
+  geom_col() +  
+  theme_minimal() +  
+  labs(title = "death rate per hos", x = "NRD hospital identifier", y = "death rate")
+unique(T18$HOSP_NRD.x)
+```
+```{r}
+# 计算每个HOSP_NRD的死亡率
+library(ggplot2)
+death_rates <- T18 %>%
+  group_by(FEMALE) %>%
+  summarise(Death_Rate = mean(DIED == 1)) %>%
+  ungroup()
+ggplot(death_rates, aes(x = FEMALE, y = Death_Rate)) +
+  geom_col() +  
+  theme_minimal() +  
+  labs(title = "death rate in Female and male", x = "gender", y = "death rate")
+unique(T18$HOSP_NRD.x)
+```
+```{r}
+# 计算每个ZIPINC_QRTL的死亡率
+death_rates_by_income <- T18 %>%
+  filter(ZIPINC_QRTL >= 1) %>%  
+  group_by(ZIPINC_QRTL) %>%
+  summarise(Death_Rate = mean(DIED == 1, na.rm = TRUE), .groups = 'drop')  
+ggplot(death_rates_by_income, aes(x = as.factor(ZIPINC_QRTL), y = Death_Rate, fill = as.factor(ZIPINC_QRTL))) +
+  geom_col() +  
+  scale_fill_brewer(palette = "Blues") +  
+  labs(title = "Death Rates by Income Quartile", x = "Income Quartile", y = "Death Rate") +
+  theme_minimal()  
+
+
+
+```
+
