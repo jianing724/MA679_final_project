@@ -1,0 +1,54 @@
+---
+title: "EDA"
+author: "Yuchen Huang"
+date: "2024-05-09"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(ggplot2)
+```
+
+## Read data
+```{r}
+M20 <- read.csv("/restricted/projectnb/ma679/ProcessedData/cxxiong/M20.csv")
+T20 <- read.csv("/restricted/projectnb/ma679/ProcessedData/cxxiong/T20.csv")
+M19 <- read.csv("/restricted/projectnb/ma679/ProcessedData/cxxiong/M19.csv")
+T19 <- read.csv("/restricted/projectnb/ma679/ProcessedData/cxxiong/T19.csv")
+M18 <- read.csv("/restricted/projectnb/ma679/ProcessedData/cxxiong/M18.csv")
+T18 <- read.csv("/restricted/projectnb/ma679/ProcessedData/cxxiong/T18.csv")
+```
+
+## Add year and procedure column
+```{r}
+M20$Year <- 2020
+M19$Year <- 2019
+M18$Year <- 2018
+Mastoditis <- rbind(M18, M19, M20)
+Mastoditis$Procedure <- "Mastoditis" 
+
+T20$Year <- 2020
+T19$Year <- 2019
+T18$Year <- 2018
+Tracheostomy <- rbind(T18, T19, T20)
+Tracheostomy$Procedure <- "Tracheostomy"
+```
+
+## Death Rates by Income Quartile
+```{r}
+## This file is modified from Jenny’s EDA
+death_rates_by_income <- rbind(Tracheostomy, Mastoditis) %>%
+  filter(ZIPINC_QRTL >= 1) %>%  ##eliminate missing value
+  group_by(ZIPINC_QRTL, Procedure) %>%
+  summarise(Death_Rate = mean(DIED == 1, na.rm = TRUE), .groups = 'drop')  
+death_rates_by_income |>
+  ggplot(aes(x = as.factor(ZIPINC_QRTL), y = Death_Rate, fill = as.factor(ZIPINC_QRTL))) +
+  geom_col() +  
+  scale_fill_brewer(palette = "Blues") +  
+  labs(title = "Death Rates by Income Quartile", x = "Income Quartile", y = "Death Rate",
+       fill="Income Quartile") +
+  facet_wrap(~Procedure) +
+  theme_minimal()  
+```

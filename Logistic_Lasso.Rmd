@@ -1,0 +1,66 @@
+---
+title: "Logistic and Lasso"
+author: "Yuchen Huang"
+date: "2024-05-09"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(ROSE)
+library(glmnet)
+library(pROC)
+library(caret)
+library(Metrics)
+```
+
+```{r}
+## read data
+M20 <- read.csv("/restricted/projectnb/ma679/ProcessedData/cxxiong/M20_new.csv")
+T20 <- read.csv("/restricted/projectnb/ma679/ProcessedData/cxxiong/T20_new.csv")
+M19 <- read.csv("/restricted/projectnb/ma679/ProcessedData/cxxiong/M19_new.csv")
+T19 <- read.csv("/restricted/projectnb/ma679/ProcessedData/cxxiong/T19_new.csv")
+M18 <- read.csv("/restricted/projectnb/ma679/ProcessedData/cxxiong/M18_new.csv")
+T18 <- read.csv("/restricted/projectnb/ma679/ProcessedData/cxxiong/T18_new.csv")
+```
+
+## Tracheostomy
+
+#### data preparation
+
+```{r}
+Tracheostomy<- rbind(T18, T19)
+Tracheostomy$PROCEDURE <- "Tracheostomy"
+
+#sum(Tracheostomy$readmit_flag==1)/nrow(Tracheostomy)
+## oversampling
+set.seed(679)
+T_balanced <- ovun.sample(readmit_flag ~ ., data = Tracheostomy, method = "over", N = 200000)$data
+```
+
+#### lasso
+
+```{r, warning = F}
+## lasso
+T_x <- data.matrix(T_balanced[, c("DIED", "AGE", "FEMALE", "LOS", "TOTCHG", "RESIDENT", "PAY1", "X0B110F4",  "Z87891", "I10", "X0CJS8ZZ", "F17210", "R1310", "X0B21XFZ", "E785", "K219", "X0DJ08ZZ")])
+T_y <- T_balanced$readmit_flag
+T_cvfit <- cv.glmnet(T_x, T_y, family = "binomial", alpha = 1)
+#plot(cv_fit)
+T_bestlambda <- T_cvfit$lambda.min
+T_lasso <- glmnet(T_x, T_y, family = "binomial", alpha = 1, lambda = T_bestlambda)
+coef(T_lasso)
+
+## evaluate
+T20_x <- data.matrix(T20[, c("DIED", "AGE", "FEMALE", "LOS", "TOTCHG", "RESIDENT", "PAY1", "X0B110F4",  "Z87891", "I10", "X0CJS8ZZ", "F17210", "R1310", "X0B21XFZ", "E785", "K219", "X0DJ08ZZ")])
+T20_y <- T20$readmit_flag
+T20_predictions <- predict(T_lasso, newx = T20_x, type = "response")
+T_roc <- roc(T20_y, T20_predictions)
+T_roc
+#plot(roc_result, main = "ROC Curve", col = "#1c61b6")
+
+T_predclasses <- ifelse(T20_predictions > 0.5, 1, 0)
+T_actual <- T20$readmit_flag
+T_confusion <- confusionMatrix(as.factor(T_predclasses[,1]), as.factor(T_actual))
+T_confusion
+```
