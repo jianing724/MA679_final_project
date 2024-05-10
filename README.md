@@ -7,7 +7,7 @@
 #### Models
 - The following three file contains the four models' constructions and evaluations.
 - Logistic_Lasso.Rmd
-- NN .ipynb
+- gbc_Jenny.py
 - NN .ipynb
 
 #### MA 679 Final Report.pdf
