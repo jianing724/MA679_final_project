@@ -63,4 +63,109 @@ T_predclasses <- ifelse(T20_predictions > 0.5, 1, 0)
 T_actual <- T20$readmit_flag
 T_confusion <- confusionMatrix(as.factor(T_predclasses[,1]), as.factor(T_actual))
 T_confusion
+
+
+T_x_predictions <- predict(T_lasso, newx = T_x, type = "response")
+# Residual plot
+T_Lresiduals <- T_y - T_x_predictions
+plot(T_x_predictions, T_Lresiduals, xlab = "Predicted Probabilities", ylab = "Residuals", main = "Residual Plot for Lasso Regression (Tracheostomy)")
+abline(h = 0, col = "red")
+
+```
+
+#### logistic
+
+```{r, warning = F}
+T_logit <- glm(readmit_flag ~ AGE + DIED + FEMALE + I10_NDX + LOS + PAY1 + SAMEDAYEVENT + HOSP_UR_TEACH + X0B110F4 + Z87891 + I10 + X0CJS8ZZ + F17210 + R1310 + X0B21XFZ + E785 + K219 + X0DJ08ZZ, 
+               data = T_balanced, family = binomial(link = "logit"))
+summary(T_logit)
+T20_predictions <- predict(T_logit, newdata = T20, type = "response")
+T20_predicted_classes <- ifelse(T20_predictions > 0.5, 1, 0)  # Using 0.5 as the threshold
+
+# confusion matrix
+T_roc_logit <- roc(T20$readmit_flag, T20_predictions)
+T_roc_logit
+T_confusionMatrix <- confusionMatrix(as.factor(T20_predicted_classes), as.factor(T20$readmit_flag), positive = "1")
+T_confusionMatrix
+
+
+T_balanced_predictions <- predict(T_logit, newdata = T_balanced, type = "response")
+T_balanced_residuals <- T_balanced$readmit_flag - T_balanced_predictions
+plot(T_balanced_predictions, T_balanced_residuals, 
+     xlab = "Predicted Probabilities", ylab = "Residuals",
+     main = "Residual Plot for Logistic Regression (Tracheostomy)")
+abline(h = 0, col = "red")  # Adds a horizontal line at zero for reference
+
+```
+
+## Mastoditis
+
+#### data preparation
+
+```{r}
+Mastoditis<- rbind(M18, M19)
+
+#sum(Tracheostomy$readmit_flag==1)/nrow(Tracheostomy)
+## oversampling
+set.seed(679)
+M_balanced <- ovun.sample(readmit_flag ~ ., data = Mastoditis, method = "over", N = 200000)$data
+```
+
+#### lasso
+
+```{r}
+## lasso
+M_x <- data.matrix(M_balanced[, c("AGE", "DIED", "FEMALE", "I10_NDX", "LOS", "PAY1", "SAMEDAYEVENT", "HOSP_UR_TEACH", "X02HV33Z", "E1122", "I2510", "E785", "D649", "E1165", "E871", "B548ZZA", "Z87891", "F17210"
+)])
+M_y <- M_balanced$readmit_flag
+M_cvfit <- cv.glmnet(M_x, M_y, family = "binomial", alpha = 1)
+#plot(cv_fit)
+M_bestlambda <- M_cvfit$lambda.min
+M_lasso <- glmnet(M_x, M_y, family = "binomial", alpha = 1, lambda = M_bestlambda)
+coef(M_lasso)
+
+## evaluate
+M20_x <- data.matrix(M20[, c("AGE", "DIED", "FEMALE", "I10_NDX", "LOS", "PAY1", "SAMEDAYEVENT", "HOSP_UR_TEACH", "X02HV33Z", "E1122", "I2510", "E785", "D649", "E1165", "E871", "B548ZZA", "Z87891", "F17210"
+)])
+M20_y <- M20$readmit_flag
+M20_pred <- predict(M_lasso, newx = M20_x, type = "response")
+M_roc <- roc(M20_y, M20_pred)
+M_roc
+
+M_predclasses <- ifelse(M20_pred > 0.01, 1, 0)
+M_actual <- M20$readmit_flag
+M_confusion <- confusionMatrix(as.factor(M_predclasses[,1]), as.factor(M_actual))
+M_confusion
+
+## residual plot
+M_balanced_predictions <- predict(M_lasso, newx = M_x, type = "response")
+M_balanced_residuals <- M_y - M_balanced_predictions
+plot(M_balanced_predictions, M_balanced_residuals, 
+     xlab = "Predicted Probabilities", ylab = "Residuals", 
+     main = "Residual Plot for Lasso Regression (Mastoditis)")
+abline(h = 0, col = "red")
+
+```
+
+#### logistic-
+
+```{r, warning = F}
+M_logit <- glm(readmit_flag ~ AGE + DIED + FEMALE + I10_NDX + LOS + PAY1 + SAMEDAYEVENT + HOSP_UR_TEACH + X02HV33Z + E1122 + I2510 + E785 + D649 + E1165 + E871 + B548ZZA + Z87891 + F17210, data = M_balanced, family = binomial(link = "logit"))
+summary(M_logit)
+M20_predictions <- predict(M_logit, newdata = M20, type = "response")
+M20_predicted_classes <- ifelse(M20_predictions > 0.01, 1, 0)
+
+# confusion matrix
+M_roc_logit <- roc(M20$readmit_flag, M20_predictions)
+M_roc_logit
+M_confusionMatrix <- confusionMatrix(as.factor(M20_predicted_classes), as.factor(M20$readmit_flag), positive = "1")
+M_confusionMatrix
+
+# residual plot
+M_balanced_predictions <- predict(M_logit, newdata = M_balanced, type = "response")
+M_balanced_residuals <- M_balanced$readmit_flag - M_balanced_predictions
+plot(M_balanced_predictions, M_balanced_residuals, 
+     xlab = "Predicted Probabilities", ylab = "Residuals", 
+     main = "Residual Plot for Logistic Regression (Mastoditis)")
+abline(h = 0, col = "red")
 ```
