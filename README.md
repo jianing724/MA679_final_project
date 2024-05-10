@@ -12,3 +12,6 @@
 
 #### MA 679 Final Report.pdf
 - The file of final report with all details
+
+#### 30-days Readmission Prediction.pptx
+- The slides for the presentation.
